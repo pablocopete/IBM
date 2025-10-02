@@ -1,0 +1,2 @@
+[functions.prioritize-tasks]
+verify_jwt = false
