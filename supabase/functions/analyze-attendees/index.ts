@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, RATE_LIMITS, createRateLimitHeaders, sanitizeForLogging } from "../_shared/rateLimiting.ts";
+import { getAllHeaders, createErrorResponse, createSuccessResponse } from "../_shared/securityHeaders.ts";
 
 // Input validation schemas
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -46,17 +48,26 @@ function validateAttendee(attendee: any): { name: string; email: string } {
   };
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getAllHeaders() });
   }
 
   try {
+    // Rate limiting - use IP or anonymous ID since no auth
+    const clientId = req.headers.get('x-forwarded-for') || 'anonymous';
+    const rateLimit = checkRateLimit(clientId, 'analyze-attendees', RATE_LIMITS.AI_ANALYSIS);
+    
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for ${clientId}`);
+      return createErrorResponse(
+        'Rate limit exceeded. Please try again later.',
+        429,
+        createRateLimitHeaders(rateLimit)
+      );
+    }
+
     const requestBody = await req.json();
     
     // Validate request body structure
@@ -95,17 +106,20 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Analyzing attendees:', attendees);
+    // Log sanitized request (no sensitive email content)
+    console.log('Analyzing attendees:', sanitizeForLogging({ count: validatedAttendees.length }));
 
     // Process each attendee
-    const attendeeIntelligence = await Promise.all(
-      attendees.map(async (attendee: { name: string; email: string }) => {
-        const emailDomain = attendee.email.split('@')[1];
-        const companyName = emailDomain.split('.')[0];
+    const analyzedAttendees = [];
 
-        console.log(`Researching ${attendee.name} from ${companyName}`);
+    for (const attendee of validatedAttendees) {
+      const emailDomain = attendee.email.split('@')[1];
+      const companyName = sanitizeString(emailDomain.split('.')[0], 100);
 
-        const systemPrompt = `You are a professional research assistant specializing in gathering business intelligence about people and companies. Your task is to analyze LinkedIn profiles and company information.
+
+      console.log(`Researching ${attendee.name} from ${companyName}`);
+
+      const systemPrompt = `You are a professional research assistant specializing in gathering business intelligence about people and companies. Your task is to analyze LinkedIn profiles and company information.
 
 Extract and structure the following information:
 - Job title and current role
@@ -116,7 +130,7 @@ Extract and structure the following information:
 
 Be professional, factual, and concise. If information is not available, indicate it clearly.`;
 
-        const userPrompt = `Research the following person:
+      const userPrompt = `Research the following person:
 Name: ${attendee.name}
 Email: ${attendee.email}
 Company Domain: ${emailDomain}
@@ -124,104 +138,104 @@ Likely Company: ${companyName}
 
 Please search for their LinkedIn profile and company information, then provide a structured analysis.`;
 
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            tools: [
-              {
-                type: "function",
-                function: {
-                  name: "attendee_intelligence",
-                  description: "Structure attendee and company intelligence",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      jobTitle: { type: "string" },
-                      role: { type: "string" },
-                      yearsAtCompany: { type: "string" },
-                      professionalBackground: { type: "string" },
-                      recentActivities: { 
-                        type: "array",
-                        items: { type: "string" }
-                      },
-                      companyName: { type: "string" },
-                      companyIndustry: { type: "string" },
-                      linkedInUrl: { type: "string" },
-                      confidence: {
-                        type: "string",
-                        enum: ["high", "medium", "low"],
-                        description: "Confidence level of the information gathered"
-                      }
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "attendee_intelligence",
+                description: "Structure attendee and company intelligence",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    jobTitle: { type: "string" },
+                    role: { type: "string" },
+                    yearsAtCompany: { type: "string" },
+                    professionalBackground: { type: "string" },
+                    recentActivities: { 
+                      type: "array",
+                      items: { type: "string" }
                     },
-                    required: ["jobTitle", "role", "companyName", "confidence"],
-                    additionalProperties: false
-                  }
+                    companyName: { type: "string" },
+                    companyIndustry: { type: "string" },
+                    linkedInUrl: { type: "string" },
+                    confidence: {
+                      type: "string",
+                      enum: ["high", "medium", "low"],
+                      description: "Confidence level of the information gathered"
+                    }
+                  },
+                  required: ["jobTitle", "role", "companyName", "confidence"],
+                  additionalProperties: false
                 }
               }
-            ],
-            tool_choice: { type: "function", function: { name: "attendee_intelligence" } }
-          }),
-        });
+            }
+          ],
+          tool_choice: { type: "function", function: { name: "attendee_intelligence" } }
+        }),
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Lovable AI error:', response.status, errorText);
-          
-          if (response.status === 429) {
-            throw new Error('Rate limit exceeded. Please try again later.');
-          }
-          
-          if (response.status === 402) {
-            throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
-          }
-
-          throw new Error(`AI request failed: ${errorText}`);
-        }
-
-        const data = await response.json();
-        const toolCall = data.choices[0]?.message?.tool_calls?.[0];
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Lovable AI error:', response.status, sanitizeForLogging(errorText));
         
-        if (!toolCall) {
-          console.error('No tool call in response for', attendee.name);
-          return {
-            name: attendee.name,
-            email: attendee.email,
-            emailDomain,
-            error: 'Failed to analyze attendee'
-          };
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+        
+        if (response.status === 402) {
+          throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
         }
 
-        const intelligence = JSON.parse(toolCall.function.arguments);
+        throw new Error(`AI request failed: ${errorText}`);
+      }
 
-        return {
+      const data = await response.json();
+      const toolCall = data.choices[0]?.message?.tool_calls?.[0];
+      
+      if (!toolCall) {
+        console.error('No tool call in response for attendee');
+        analyzedAttendees.push({
           name: attendee.name,
           email: attendee.email,
           emailDomain,
-          ...intelligence
-        };
-      })
-    );
+          error: 'Failed to analyze attendee'
+        });
+        continue;
+      }
 
-    console.log('Analysis complete:', attendeeIntelligence);
+      const intelligence = JSON.parse(toolCall.function.arguments);
 
-    return new Response(
-      JSON.stringify({ attendees: attendeeIntelligence }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      analyzedAttendees.push({
+        name: attendee.name,
+        email: attendee.email,
+        emailDomain,
+        ...intelligence
+      });
+    }
+
+    console.log('Analysis complete');
+
+    return createSuccessResponse(
+      { attendees: analyzedAttendees },
+      createRateLimitHeaders(rateLimit)
     );
   } catch (error) {
-    console.error('Error in analyze-attendees function:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    console.error('Error in analyze-attendees function:', sanitizeForLogging(error));
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Unknown error',
+      500
     );
   }
 });
