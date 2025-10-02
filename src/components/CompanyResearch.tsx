@@ -72,6 +72,237 @@ interface CompanyResearchProps {
   companyDomain: string;
 }
 
+// Mock company research data generator
+const generateMockResearch = (companyName: string, companyDomain: string): CompanyResearch => {
+  const domain = companyDomain.toLowerCase();
+  
+  // Different mock data based on domain
+  if (domain.includes('techcorp') || domain.includes('tech')) {
+    return {
+      companyName,
+      companyDomain,
+      profile: {
+        size: "Large Enterprise",
+        headcount: "850",
+        industry: "Enterprise Software & Cloud Services",
+        sector: "Information Technology",
+        founded: "2015",
+        headquarters: "San Francisco, CA",
+        products: [
+          "AI-Powered Analytics Platform",
+          "Cloud Data Warehouse Solutions",
+          "Business Intelligence Suite",
+          "Real-time Data Processing Engine"
+        ],
+        businessModel: "B2B SaaS with tiered subscription pricing and enterprise contracts"
+      },
+      financial: {
+        revenue: "$25M ARR (Annual Recurring Revenue)",
+        fundingRounds: [
+          "Series C: $50M (2024) - Sequoia Capital, Accel",
+          "Series B: $25M (2022) - Andreessen Horowitz",
+          "Series A: $10M (2020) - Y Combinator, First Round Capital"
+        ],
+        investors: ["Sequoia Capital", "Andreessen Horowitz", "Y Combinator", "Accel", "First Round Capital"],
+        growthIndicators: [
+          "35% YoY revenue growth",
+          "Expanded to 15 countries",
+          "Hired 150+ employees in past year",
+          "Customer base grew 50% to 1,200+ companies"
+        ],
+        partnerships: [
+          "Strategic partnership with Salesforce",
+          "AWS Advanced Technology Partner",
+          "Integration with Microsoft Azure"
+        ]
+      },
+      recentNews: [
+        {
+          headline: "Tech Corp Raises $50M Series C to Accelerate AI Innovation",
+          date: "September 2024",
+          summary: "Led by Sequoia Capital, the funding will support product development and international expansion into APAC markets.",
+          source: "TechCrunch"
+        },
+        {
+          headline: "Tech Corp Launches Revolutionary AI Analytics Platform",
+          date: "August 2024",
+          summary: "New platform uses machine learning to provide real-time business insights and predictive analytics.",
+          source: "VentureBeat"
+        },
+        {
+          headline: "Tech Corp Expands to Asia-Pacific Region",
+          date: "July 2024",
+          summary: "Opens offices in Singapore, Tokyo, and Sydney to serve growing customer base in APAC.",
+          source: "Business Wire"
+        }
+      ],
+      painPoints: {
+        industryChallenges: [
+          "Intense competition from established players (Tableau, Power BI, Looker)",
+          "Rapid technological change requiring continuous innovation",
+          "Data privacy regulations across multiple jurisdictions",
+          "Need to demonstrate clear ROI to cautious enterprise buyers"
+        ],
+        technologyGaps: [
+          "Scaling infrastructure to handle 10x growth in data volume",
+          "Building enterprise-grade security features for Fortune 500 clients",
+          "Integrating with legacy enterprise systems"
+        ],
+        scalingIssues: [
+          "Managing distributed team across 15 countries",
+          "Maintaining product quality during rapid feature development",
+          "Scaling customer success operations to match growth"
+        ],
+        competitivePressures: [
+          "Competing against Microsoft and Google's analytics offerings",
+          "Pressure to match feature parity with established competitors",
+          "Need to differentiate through AI capabilities"
+        ]
+      },
+      strategicInsights: {
+        keyCompetitors: [
+          "Tableau (Salesforce)",
+          "Power BI (Microsoft)",
+          "Looker (Google Cloud)",
+          "Qlik",
+          "Domo"
+        ],
+        marketPosition: "Fast-growing challenger focused on AI-powered analytics for mid-market and enterprise customers. Strong technical reputation but still building brand recognition.",
+        opportunities: [
+          "AI/ML analytics is high-growth market segment",
+          "Enterprises increasingly looking for modern alternatives to legacy BI tools",
+          "Strong demand in APAC region they're now entering",
+          "Opportunity to become embedded analytics platform for SaaS companies"
+        ],
+        risks: [
+          "Well-funded competitors with larger sales organizations",
+          "Dependence on cloud infrastructure providers (AWS, Azure)",
+          "Economic downturn could impact enterprise software spending",
+          "Talent competition in AI/ML space"
+        ]
+      },
+      confidence: "high",
+      researchedAt: new Date().toISOString()
+    };
+  } else if (domain.includes('acme') || domain.includes('industries')) {
+    return {
+      companyName,
+      companyDomain,
+      profile: {
+        size: "Mid-Market",
+        headcount: "350",
+        industry: "Manufacturing & Industrial Equipment",
+        sector: "Industrial Manufacturing",
+        founded: "1985",
+        headquarters: "Houston, TX",
+        products: [
+          "Precision Industrial Components",
+          "Custom Manufacturing Solutions",
+          "Industrial Automation Equipment",
+          "Maintenance & Repair Services"
+        ],
+        businessModel: "B2B manufacturing with long-term contracts and recurring maintenance revenue"
+      },
+      financial: {
+        revenue: "$50M+ annually (estimated)",
+        fundingRounds: ["Bootstrapped / Family-owned"],
+        investors: ["Privately held"],
+        growthIndicators: [
+          "Consistent 8-12% annual growth over past decade",
+          "Recently invested $20M in new Texas facility",
+          "Strong cash flow and profitability",
+          "95%+ customer retention rate"
+        ],
+        recentAcquisitions: ["Acquired regional competitor for $5M (2023)"],
+        partnerships: [
+          "Major automotive manufacturers (Ford, GM, Toyota)",
+          "Defense contractors",
+          "Energy sector companies"
+        ]
+      },
+      recentNews: [
+        {
+          headline: "Acme Industries Opens $20M State-of-the-Art Manufacturing Facility",
+          date: "August 2024",
+          summary: "New facility in Austin, TX will increase production capacity by 40% and create 75 new jobs.",
+          source: "Manufacturing Today"
+        },
+        {
+          headline: "Acme Industries Wins Major Automotive Contract",
+          date: "June 2024",
+          summary: "Secured $15M multi-year contract to supply precision components to leading automotive manufacturer.",
+          source: "Industry Week"
+        },
+        {
+          headline: "Acme Invests in Digital Transformation Initiative",
+          date: "May 2024",
+          summary: "Company announces $5M investment to modernize operations with IoT sensors and data analytics.",
+          source: "Industrial IoT Report"
+        }
+      ],
+      painPoints: {
+        industryChallenges: [
+          "Supply chain disruptions affecting raw material costs and availability",
+          "Labor shortage for skilled manufacturing workers",
+          "Increasing pressure to adopt Industry 4.0 technologies",
+          "Environmental regulations requiring process changes"
+        ],
+        technologyGaps: [
+          "Legacy ERP system (AS/400) limiting real-time visibility",
+          "Manual, paper-based processes in field sales operations",
+          "Lack of integrated system for order-to-cash process",
+          "Limited data analytics capabilities for predictive maintenance"
+        ],
+        scalingIssues: [
+          "Managing quality control across multiple facilities",
+          "Coordinating field sales team across wide geographic territory",
+          "Tracking customer orders and inventory in real-time"
+        ],
+        competitivePressures: [
+          "Lower-cost overseas manufacturers",
+          "Customers demanding faster turnaround times",
+          "Need to demonstrate value beyond just price competition"
+        ]
+      },
+      strategicInsights: {
+        keyCompetitors: [
+          "Regional manufacturing companies",
+          "Overseas manufacturers (China, Mexico)",
+          "Larger industrial conglomerates"
+        ],
+        marketPosition: "Established regional player with strong reputation for quality and reliability. Known for custom solutions and customer service. Premium pricing strategy.",
+        opportunities: [
+          "Reshoring trend favoring US manufacturers",
+          "Growing demand for custom manufacturing solutions",
+          "Expansion into adjacent markets (renewable energy, aerospace)",
+          "Digital transformation to improve efficiency and customer experience"
+        ],
+        risks: [
+          "Economic slowdown affecting capital equipment spending",
+          "Continued supply chain volatility",
+          "Difficulty attracting younger workforce to manufacturing",
+          "Technology disruption from automation and 3D printing"
+        ]
+      },
+      confidence: "high",
+      researchedAt: new Date().toISOString()
+    };
+  }
+  
+  // Generic fallback for other domains
+  return {
+    companyName,
+    companyDomain,
+    profile: {
+      industry: "Business Services",
+      size: "Small to Mid-Market",
+      founded: "2010s"
+    },
+    confidence: "low",
+    researchedAt: new Date().toISOString()
+  };
+};
+
 export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchProps) => {
   const [research, setResearch] = useState<CompanyResearch | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,77 +312,20 @@ export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchP
   const conductResearch = async () => {
     setIsLoading(true);
     setErrorState(null);
-    try {
-      console.log(`Researching ${companyName}...`);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/research-company`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ companyName, companyDomain }),
-        }
-      );
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Handle rate limiting
-        if (response.status === 429) {
-          setErrorState({
-            message: 'Research service temporarily busy. Please try again in a moment.',
-            canRetry: true,
-          });
-          return;
-        }
+    // Generate mock research data
+    const mockData = generateMockResearch(companyName, companyDomain);
+    setResearch(mockData);
+    
+    toast({
+      title: "Research Complete",
+      description: `Comprehensive analysis of ${companyName} completed (using mock data)`,
+    });
 
-        // Handle blocked websites
-        if (response.status === 403 || response.status === 451) {
-          setErrorState({
-            message: 'Some data sources are restricted. Using available public information.',
-            canRetry: false,
-          });
-          // Set partial research data if available
-          setResearch({
-            companyName,
-            companyDomain,
-            profile: {
-              industry: 'Information unavailable',
-            },
-            confidence: 'low',
-            researchedAt: new Date().toISOString(),
-          });
-          return;
-        }
-        
-        throw new Error(errorData.error || 'Failed to research company');
-      }
-
-      const data = await response.json();
-      setResearch(data);
-      
-      toast({
-        title: "Research Complete",
-        description: `Comprehensive analysis of ${companyName} completed`,
-      });
-    } catch (error) {
-      console.error('Error researching company:', error);
-      
-      setErrorState({
-        message: 'Company research unavailable. Meeting can proceed with basic details.',
-        canRetry: true,
-      });
-      
-      toast({
-        title: "Limited Information",
-        description: "Unable to fetch complete company data. Proceeding with available information.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   };
 
   const getConfidenceBadge = (confidence?: string) => {
