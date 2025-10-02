@@ -31,6 +31,8 @@ import { ConsentDialog } from "@/components/ConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+const DEMO_MODE = true;
+
 const IntelligentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,6 +54,13 @@ const IntelligentDashboard = () => {
 
   const checkAuth = async () => {
     try {
+      if (DEMO_MODE) {
+        setUserEmail("demo@lovable.app");
+        setShowConsent(false);
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -120,7 +129,7 @@ const IntelligentDashboard = () => {
   return (
     <>
       <ConsentDialog 
-        open={showConsent} 
+        open={DEMO_MODE ? false : showConsent} 
         onOpenChange={setShowConsent}
         onConsent={() => {
           setShowConsent(false);
