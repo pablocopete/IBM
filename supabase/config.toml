@@ -1,2 +1,5 @@
 [functions.prioritize-tasks]
 verify_jwt = false
+
+[functions.analyze-attendees]
+verify_jwt = false

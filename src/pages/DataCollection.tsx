@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Mail, Zap } from "lucide-react";
+import { Calendar, Mail, Zap, Users } from "lucide-react";
 import CalendarEvents from "@/components/CalendarEvents";
 import EmailList from "@/components/EmailList";
 import { PrioritizedAgenda } from "@/components/PrioritizedAgenda";
+import { AttendeeIntelligence } from "@/components/AttendeeIntelligence";
 
 const DataCollection = () => {
   const mockCalendarEvents = [
@@ -88,7 +89,7 @@ const DataCollection = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="calendar" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-3xl grid-cols-4">
             <TabsTrigger value="calendar" className="gap-2">
               <Calendar className="w-4 h-4" />
               Calendar
@@ -100,6 +101,10 @@ const DataCollection = () => {
             <TabsTrigger value="prioritized" className="gap-2">
               <Zap className="w-4 h-4" />
               Prioritized
+            </TabsTrigger>
+            <TabsTrigger value="intelligence" className="gap-2">
+              <Users className="w-4 h-4" />
+              Intelligence
             </TabsTrigger>
           </TabsList>
 
@@ -116,6 +121,10 @@ const DataCollection = () => {
               calendarEvents={mockCalendarEvents}
               emails={mockEmails}
             />
+          </TabsContent>
+
+          <TabsContent value="intelligence">
+            <AttendeeIntelligence calendarEvents={mockCalendarEvents} />
           </TabsContent>
         </Tabs>
       </div>
