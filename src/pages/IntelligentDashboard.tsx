@@ -16,6 +16,7 @@ import {
   Building2,
   Users,
 } from "lucide-react";
+// Component imports
 import { DailySummary } from "@/components/DailySummary";
 import CalendarEvents from "@/components/CalendarEvents";
 import EmailList from "@/components/EmailList";
@@ -25,6 +26,8 @@ import { AttendeeIntelligence } from "@/components/AttendeeIntelligence";
 import { SalesIntelligenceEngine } from "@/components/SalesIntelligenceEngine";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ConsentDialog } from "@/components/ConsentDialog";
+
+// Supabase & utilities
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
