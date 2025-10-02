@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.research-company]
 verify_jwt = false
+
+[functions.generate-sales-intelligence]
+verify_jwt = false

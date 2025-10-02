@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Mail, Zap, Users } from "lucide-react";
+import { Calendar, Mail, Zap, Users, Target } from "lucide-react";
 import CalendarEvents from "@/components/CalendarEvents";
 import EmailList from "@/components/EmailList";
 import { PrioritizedAgenda } from "@/components/PrioritizedAgenda";
 import { AttendeeIntelligence } from "@/components/AttendeeIntelligence";
+import { SalesIntelligenceEngine } from "@/components/SalesIntelligenceEngine";
 
 const DataCollection = () => {
+  const [attendeeIntelligence, setAttendeeIntelligence] = useState<any[]>([]);
+  const [companyResearch, setCompanyResearch] = useState<any>(null);
+
   const mockCalendarEvents = [
     {
       id: "1",
@@ -89,7 +94,7 @@ const DataCollection = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="calendar" className="space-y-6">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4">
+          <TabsList className="grid w-full max-w-4xl grid-cols-5">
             <TabsTrigger value="calendar" className="gap-2">
               <Calendar className="w-4 h-4" />
               Calendar
@@ -105,6 +110,10 @@ const DataCollection = () => {
             <TabsTrigger value="intelligence" className="gap-2">
               <Users className="w-4 h-4" />
               Intelligence
+            </TabsTrigger>
+            <TabsTrigger value="sales" className="gap-2">
+              <Target className="w-4 h-4" />
+              Sales
             </TabsTrigger>
           </TabsList>
 
@@ -125,6 +134,14 @@ const DataCollection = () => {
 
           <TabsContent value="intelligence">
             <AttendeeIntelligence calendarEvents={mockCalendarEvents} />
+          </TabsContent>
+
+          <TabsContent value="sales">
+            <SalesIntelligenceEngine 
+              calendarEvents={mockCalendarEvents}
+              attendeeIntelligence={attendeeIntelligence}
+              companyResearch={companyResearch}
+            />
           </TabsContent>
         </Tabs>
       </div>
