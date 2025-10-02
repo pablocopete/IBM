@@ -114,8 +114,9 @@ const CalendarEvents = () => {
 
   const fetchUserEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from('calendar_events' as any)
+      const client = supabase as any;
+      const { data, error } = await client
+        .from('calendar_events')
         .select('*')
         .eq('event_date', new Date().toISOString().split('T')[0])
         .order('start_time', { ascending: true });
