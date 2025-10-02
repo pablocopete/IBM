@@ -1,15 +1,1 @@
-# SECURITY WARNING: These functions have JWT verification disabled
-# This means they are PUBLIC and can be called by anyone
-# Rate limiting and input validation are critical for these endpoints
-
-[functions.prioritize-tasks]
-verify_jwt = false
-
-[functions.analyze-attendees]
-verify_jwt = false
-
-[functions.research-company]
-verify_jwt = false
-
-[functions.generate-sales-intelligence]
-verify_jwt = false
+project_id = "gnafsccdvfnapvsmvfrh"
