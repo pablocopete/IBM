@@ -113,34 +113,39 @@ const CalendarEvents = () => {
   };
 
   const fetchUserEvents = async () => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('event_date', new Date().toISOString().split('T')[0])
-      .order('start_time', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events' as any)
+        .select('*')
+        .eq('event_date', new Date().toISOString().split('T')[0])
+        .order('start_time', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching events:', error);
-      return;
-    }
+      if (error) {
+        console.error('Error fetching events:', error);
+        return;
+      }
 
-    if (data && data.length > 0) {
-      const formattedEvents: CalendarEvent[] = data.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        startTime: `${event.event_date}T${event.start_time || '09:00:00'}Z`,
-        endTime: `${event.event_date}T${event.end_time || '10:00:00'}Z`,
-        duration: event.start_time && event.end_time ? 
-          Math.round((new Date(`2000-01-01T${event.end_time}`).getTime() - 
-                     new Date(`2000-01-01T${event.start_time}`).getTime()) / 60000) : 60,
-        attendees: event.attendees || [],
-        description: event.description || undefined,
-        location: event.location || undefined,
-        timezone: userTimezone,
-        priority: (event.priority as "high" | "medium" | "low") || "medium",
-      }));
-      setEvents(formattedEvents);
-    } else {
+      if (data && data.length > 0) {
+        const formattedEvents: CalendarEvent[] = data.map((event: any) => ({
+          id: event.id,
+          title: event.title,
+          startTime: `${event.event_date}T${event.start_time || '09:00:00'}Z`,
+          endTime: `${event.event_date}T${event.end_time || '10:00:00'}Z`,
+          duration: event.start_time && event.end_time ? 
+            Math.round((new Date(`2000-01-01T${event.end_time}`).getTime() - 
+                       new Date(`2000-01-01T${event.start_time}`).getTime()) / 60000) : 60,
+          attendees: event.attendees || [],
+          description: event.description || undefined,
+          location: event.location || undefined,
+          timezone: userTimezone,
+          priority: (event.priority as "high" | "medium" | "low") || "medium",
+        }));
+        setEvents(formattedEvents);
+      } else {
+        setEvents([]);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserEvents:', error);
       setEvents([]);
     }
   };
