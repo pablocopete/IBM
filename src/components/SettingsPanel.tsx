@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -12,13 +13,29 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Calendar,
   Mail,
   Bell,
   RefreshCw,
   Shield,
   Zap,
+  Download,
+  Trash2,
+  Eye,
+  FileText,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface SettingsPanelProps {
   open: boolean;
@@ -26,6 +43,74 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel = ({ open, onOpenChange }: SettingsPanelProps) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+
+  const handleDataExport = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('request-data-export');
+      
+      if (error) throw error;
+
+      // Download the data as JSON
+      const dataStr = JSON.stringify(data.data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `my-data-export-${new Date().toISOString()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: "Your data has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDataDeletion = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke('request-data-deletion');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account and all data have been permanently deleted.",
+      });
+
+      // Sign out and redirect
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Deletion error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error instanceof Error ? error.message : "Failed to delete account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md">
@@ -155,27 +240,108 @@ export const SettingsPanel = ({ open, onOpenChange }: SettingsPanelProps) => {
 
             <Separator />
 
+            {/* Privacy & Data Rights (GDPR/CCPA) */}
+            <div>
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Privacy & Data Rights
+              </h3>
+              <div className="space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => window.open('/privacy', '_blank')}
+                >
+                  <Eye className="h-4 w-4" />
+                  Privacy Policy
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => window.open('/terms', '_blank')}
+                >
+                  <FileText className="h-4 w-4" />
+                  Terms of Service
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={handleDataExport}
+                  disabled={isExporting}
+                >
+                  <Download className="h-4 w-4" />
+                  {isExporting ? "Exporting..." : "Export My Data (GDPR)"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete My Account
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Security */}
             <div>
               <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                Security
+                Security & Permissions
               </h3>
               <div className="space-y-3">
                 <Button variant="outline" className="w-full justify-start">
-                  Manage Data Access
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Privacy Settings
+                  View Consent History
                 </Button>
                 <Button variant="outline" className="w-full justify-start text-destructive">
-                  Revoke All Permissions
+                  Revoke All API Permissions
                 </Button>
               </div>
             </div>
           </div>
         </ScrollArea>
       </SheetContent>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Account Permanently?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This action cannot be undone. This will permanently delete your account and 
+                remove all your data from our servers.
+              </p>
+              <p className="font-semibold">This includes:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 ml-2">
+                <li>All calendar and email intelligence data</li>
+                <li>Task prioritization history</li>
+                <li>Meeting insights and research</li>
+                <li>API integrations and permissions</li>
+                <li>All consent records and preferences</li>
+              </ul>
+              <p className="text-sm mt-4">
+                Consider exporting your data before deletion if you want to keep a copy.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDataDeletion}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Yes, Delete My Account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 };
