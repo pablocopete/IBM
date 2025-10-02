@@ -365,33 +365,6 @@ const IntelligentDashboard = () => {
 
             {/* Sales Intelligence Tab */}
             <TabsContent value="intelligence" className="space-y-4">
-              {/* Calendar and Emails in Intelligence Tab */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Calendar Events
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CalendarEvents />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      Recent Emails
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <EmailList />
-                  </CardContent>
-                </Card>
-              </div>
-
               <SalesIntelligenceEngine
                 calendarEvents={calendarEvents}
                 attendeeIntelligence={attendeeIntelligence}
