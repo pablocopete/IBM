@@ -83,6 +83,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          created_at: string
+          email_address: string
+          id: string
+          last_synced_at: string | null
+          provider: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          email_address: string
+          id?: string
+          last_synced_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          email_address?: string
+          id?: string
+          last_synced_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_preferences: {
         Row: {
           created_at: string | null
@@ -154,6 +196,54 @@ export type Database = {
           revoked_at?: string | null
           updated_at?: string | null
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_emails: {
+        Row: {
+          body_snippet: string | null
+          created_at: string
+          email_id: string
+          id: string
+          is_read: boolean | null
+          labels: string[] | null
+          priority: string | null
+          received_at: string | null
+          sender_email: string | null
+          sender_name: string | null
+          subject: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body_snippet?: string | null
+          created_at?: string
+          email_id: string
+          id?: string
+          is_read?: boolean | null
+          labels?: string[] | null
+          priority?: string | null
+          received_at?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body_snippet?: string | null
+          created_at?: string
+          email_id?: string
+          id?: string
+          is_read?: boolean | null
+          labels?: string[] | null
+          priority?: string | null
+          received_at?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          subject?: string | null
+          thread_id?: string | null
           user_id?: string
         }
         Relationships: []
