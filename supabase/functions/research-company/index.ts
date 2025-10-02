@@ -1,6 +1,34 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Input validation
+const MAX_COMPANY_NAME_LENGTH = 200;
+const MAX_DOMAIN_LENGTH = 253;
+const domainRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+
+function sanitizeString(input: string, maxLength: number = 1000): string {
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
+}
+
+function validateDomain(domain: string): boolean {
+  if (!domain || domain.length < 3 || domain.length > MAX_DOMAIN_LENGTH) {
+    return false;
+  }
+  return domainRegex.test(domain);
+}
+
+function validateCompanyName(name: string): boolean {
+  if (!name || name.trim().length === 0 || name.length > MAX_COMPANY_NAME_LENGTH) {
+    return false;
+  }
+  return true;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,14 +40,36 @@ serve(async (req) => {
   }
 
   try {
-    const { companyName, companyDomain } = await req.json();
+    const requestBody = await req.json();
+    
+    // Validate request body
+    if (!requestBody || typeof requestBody !== 'object') {
+      throw new Error('Invalid request body');
+    }
+
+    const { companyName, companyDomain } = requestBody;
+
+    // Validate company name
+    if (!validateCompanyName(companyName)) {
+      throw new Error('Invalid company name');
+    }
+
+    // Validate domain
+    if (!validateDomain(companyDomain)) {
+      throw new Error('Invalid company domain format');
+    }
+
+    // Sanitize inputs
+    const sanitizedCompanyName = sanitizeString(companyName, MAX_COMPANY_NAME_LENGTH);
+    const sanitizedDomain = companyDomain.trim().toLowerCase();
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Researching company: ${companyName} (${companyDomain})`);
+    console.log(`Researching company: ${sanitizedCompanyName} (${sanitizedDomain})`);
 
     const systemPrompt = `You are a professional business intelligence analyst specializing in company research and competitive analysis. Your role is to gather comprehensive information about companies from public sources.
 
@@ -62,8 +112,8 @@ Conduct thorough research on the company and provide:
 Base your analysis on current, publicly available information. Cite confidence levels and note when information is estimated or unavailable.`;
 
     const userPrompt = `Research this company:
-Company Name: ${companyName}
-Website: ${companyDomain}
+Company Name: ${sanitizedCompanyName}
+Website: ${sanitizedDomain}
 
 Provide comprehensive business intelligence covering company profile, financial data, recent news, pain points, and strategic insights.`;
 
@@ -192,12 +242,12 @@ Provide comprehensive business intelligence covering company profile, financial 
 
     const research = JSON.parse(toolCall.function.arguments);
 
-    console.log('Company research complete:', companyName);
+    console.log('Company research complete:', sanitizedCompanyName);
 
     return new Response(
       JSON.stringify({
-        companyName,
-        companyDomain,
+        companyName: sanitizedCompanyName,
+        companyDomain: sanitizedDomain,
         ...research,
         researchedAt: new Date().toISOString()
       }),

@@ -1,6 +1,57 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Input validation
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const MAX_STRING_LENGTH = 1000;
+
+function sanitizeString(input: string, maxLength: number = MAX_STRING_LENGTH): string {
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
+}
+
+function validateEmail(email: string): boolean {
+  if (!email || email.length > 255) return false;
+  return emailRegex.test(email);
+}
+
+function validateInput(data: any): void {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid input data');
+  }
+
+  // Validate meeting
+  if (!data.meeting || typeof data.meeting !== 'object') {
+    throw new Error('Invalid meeting data');
+  }
+
+  // Validate attendee
+  if (!data.attendee || typeof data.attendee !== 'object') {
+    throw new Error('Invalid attendee data');
+  }
+
+  if (!data.attendee.name || typeof data.attendee.name !== 'string') {
+    throw new Error('Attendee name is required');
+  }
+
+  if (!validateEmail(data.attendee.email)) {
+    throw new Error('Invalid attendee email');
+  }
+
+  // Validate company research
+  if (!data.companyResearch || typeof data.companyResearch !== 'object') {
+    throw new Error('Invalid company research data');
+  }
+
+  if (!data.companyResearch.companyName || typeof data.companyResearch.companyName !== 'string') {
+    throw new Error('Company name is required');
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,14 +63,33 @@ serve(async (req) => {
   }
 
   try {
-    const { meeting, attendee, companyResearch } = await req.json();
+    const requestBody = await req.json();
+    
+    // Validate input
+    validateInput(requestBody);
+    
+    const { meeting, attendee, companyResearch } = requestBody;
+    
+    // Sanitize string inputs
+    const sanitizedAttendee = {
+      ...attendee,
+      name: sanitizeString(attendee.name, 100),
+      email: attendee.email.trim().toLowerCase(),
+      jobTitle: attendee.jobTitle ? sanitizeString(attendee.jobTitle, 200) : undefined
+    };
+    
+    const sanitizedCompany = {
+      ...companyResearch,
+      companyName: sanitizeString(companyResearch.companyName, 200)
+    };
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Generating sales intelligence for ${attendee.name} at ${companyResearch.companyName}`);
+    console.log(`Generating sales intelligence for ${sanitizedAttendee.name} at ${sanitizedCompany.companyName}`);
 
     const systemPrompt = `You are an expert sales strategist and business development consultant. Your role is to analyze client data and generate actionable sales intelligence that helps sales teams close deals effectively.
 
@@ -45,14 +115,14 @@ Be specific, actionable, and sales-focused. Provide concrete recommendations tha
 MEETING DETAILS:
 - Time: ${meeting.startTime}
 - Duration: ${meeting.duration}
-- Attendee: ${attendee.name}, ${attendee.jobTitle || 'N/A'}
-- Company: ${companyResearch.companyName}
+- Attendee: ${sanitizedAttendee.name}, ${sanitizedAttendee.jobTitle || 'N/A'}
+- Company: ${sanitizedCompany.companyName}
 
 ATTENDEE INFORMATION:
-${JSON.stringify(attendee, null, 2)}
+${JSON.stringify(sanitizedAttendee, null, 2)}
 
 COMPANY RESEARCH:
-${JSON.stringify(companyResearch, null, 2)}
+${JSON.stringify(sanitizedCompany, null, 2)}
 
 Generate a comprehensive sales intelligence brief with specific recommendations on what to sell and how to approach this client.`;
 
@@ -159,11 +229,11 @@ Generate a comprehensive sales intelligence brief with specific recommendations 
       JSON.stringify({
         meeting,
         attendee: {
-          name: attendee.name,
-          title: attendee.jobTitle,
-          email: attendee.email
+          name: sanitizedAttendee.name,
+          title: sanitizedAttendee.jobTitle,
+          email: sanitizedAttendee.email
         },
-        company: companyResearch.companyName,
+        company: sanitizedCompany.companyName,
         ...salesIntelligence,
         generatedAt: new Date().toISOString()
       }),

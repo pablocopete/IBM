@@ -1,6 +1,41 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Input validation
+const MAX_EVENTS = 100;
+const MAX_EMAILS = 200;
+
+function sanitizeString(input: string, maxLength: number = 1000): string {
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
+}
+
+function validateInput(data: any): void {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid request body');
+  }
+
+  if (!Array.isArray(data.calendarEvents)) {
+    throw new Error('Calendar events must be an array');
+  }
+
+  if (!Array.isArray(data.emails)) {
+    throw new Error('Emails must be an array');
+  }
+
+  if (data.calendarEvents.length > MAX_EVENTS) {
+    throw new Error(`Too many calendar events. Maximum: ${MAX_EVENTS}`);
+  }
+
+  if (data.emails.length > MAX_EMAILS) {
+    throw new Error(`Too many emails. Maximum: ${MAX_EMAILS}`);
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,7 +47,27 @@ serve(async (req) => {
   }
 
   try {
-    const { calendarEvents, emails } = await req.json();
+    const requestBody = await req.json();
+    
+    // Validate input
+    validateInput(requestBody);
+    
+    const { calendarEvents, emails } = requestBody;
+    
+    // Sanitize calendar events
+    const sanitizedEvents = calendarEvents.map((event: any) => ({
+      ...event,
+      title: sanitizeString(event.title || '', 500),
+      description: event.description ? sanitizeString(event.description, 5000) : undefined
+    }));
+    
+    // Sanitize emails
+    const sanitizedEmails = emails.map((email: any) => ({
+      ...email,
+      subject: sanitizeString(email.subject || '', 998),
+      snippet: sanitizeString(email.snippet || '', 5000)
+    }));
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
@@ -35,10 +90,10 @@ Current time: ${currentTime}
 Analyze the provided data and categorize each item appropriately.`;
 
     const userPrompt = `Calendar Events:
-${JSON.stringify(calendarEvents, null, 2)}
+${JSON.stringify(sanitizedEvents, null, 2)}
 
 Emails:
-${JSON.stringify(emails, null, 2)}
+${JSON.stringify(sanitizedEmails, null, 2)}
 
 Categorize and prioritize all items for today's agenda.`;
 

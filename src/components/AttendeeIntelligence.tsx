@@ -8,6 +8,7 @@ import { Loader2, Building2, Briefcase, Calendar, TrendingUp, ExternalLink, Aler
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CompanyResearch } from "./CompanyResearch";
+import { attendeeSchema, validateBatch } from "@/lib/validation";
 
 interface AttendeeData {
   name: string;
@@ -52,6 +53,19 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
           });
         }
       });
+
+      // Validate attendees before sending
+      try {
+        validateBatch(attendeeSchema, allAttendees, 50);
+      } catch (validationError) {
+        toast({
+          title: "Validation Error",
+          description: validationError instanceof Error ? validationError.message : "Invalid attendee data",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       if (allAttendees.length === 0) {
         toast({

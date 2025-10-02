@@ -1,6 +1,51 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Input validation schemas
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const MAX_ATTENDEES = 50;
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+
+function sanitizeString(input: string, maxLength: number = 1000): string {
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
+}
+
+function validateEmail(email: string): boolean {
+  if (!email || email.length > MAX_EMAIL_LENGTH) return false;
+  return emailRegex.test(email);
+}
+
+function validateAttendee(attendee: any): { name: string; email: string } {
+  if (!attendee || typeof attendee !== 'object') {
+    throw new Error('Invalid attendee format');
+  }
+
+  const { name, email } = attendee;
+
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    throw new Error('Attendee name is required');
+  }
+
+  if (!email || typeof email !== 'string' || !validateEmail(email)) {
+    throw new Error(`Invalid email format: ${email}`);
+  }
+
+  if (name.length > MAX_NAME_LENGTH) {
+    throw new Error(`Name too long: maximum ${MAX_NAME_LENGTH} characters`);
+  }
+
+  return {
+    name: sanitizeString(name, MAX_NAME_LENGTH),
+    email: email.trim().toLowerCase()
+  };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,7 +57,38 @@ serve(async (req) => {
   }
 
   try {
-    const { attendees } = await req.json();
+    const requestBody = await req.json();
+    
+    // Validate request body structure
+    if (!requestBody || typeof requestBody !== 'object') {
+      throw new Error('Invalid request body');
+    }
+
+    const { attendees } = requestBody;
+    
+    // Validate attendees array
+    if (!Array.isArray(attendees)) {
+      throw new Error('Attendees must be an array');
+    }
+
+    if (attendees.length === 0) {
+      throw new Error('At least one attendee is required');
+    }
+
+    if (attendees.length > MAX_ATTENDEES) {
+      throw new Error(`Too many attendees. Maximum allowed: ${MAX_ATTENDEES}`);
+    }
+
+    // Validate and sanitize each attendee
+    const validatedAttendees = attendees.map((attendee, index) => {
+      try {
+        return validateAttendee(attendee);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
+        throw new Error(`Attendee ${index + 1}: ${errorMessage}`);
+      }
+    });
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
