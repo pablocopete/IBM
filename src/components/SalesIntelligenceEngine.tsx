@@ -55,10 +55,12 @@ export const SalesIntelligenceEngine = ({
 }: SalesIntelligenceEngineProps) => {
   const [intelligence, setIntelligence] = useState<SalesIntelligence[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [partialFailure, setPartialFailure] = useState(false);
   const { toast } = useToast();
 
   const generateIntelligence = async () => {
     setIsLoading(true);
+    setPartialFailure(false);
     try {
       console.log('Generating sales intelligence...');
 
@@ -74,34 +76,41 @@ export const SalesIntelligenceEngine = ({
 
           if (!attendeeInfo || !attendeeInfo.companyName) return null;
 
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sales-intelligence`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                meeting: {
-                  startTime: meeting.startTime,
-                  duration: meeting.duration,
-                  title: meeting.title
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sales-intelligence`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
                 },
-                attendee: attendeeInfo,
-                companyResearch: companyResearch || {
-                  companyName: attendeeInfo.companyName,
-                  profile: { industry: attendeeInfo.companyIndustry }
-                }
-              }),
+                body: JSON.stringify({
+                  meeting: {
+                    startTime: meeting.startTime,
+                    duration: meeting.duration,
+                    title: meeting.title
+                  },
+                  attendee: attendeeInfo,
+                  companyResearch: companyResearch || {
+                    companyName: attendeeInfo.companyName,
+                    profile: { industry: attendeeInfo.companyIndustry }
+                  }
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              console.warn(`Failed to generate intelligence for ${attendeeInfo.name}`);
+              setPartialFailure(true);
+              return null;
             }
-          );
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to generate intelligence');
+            return await response.json();
+          } catch (err) {
+            console.warn(`Error processing ${attendeeInfo.name}:`, err);
+            setPartialFailure(true);
+            return null;
           }
-
-          return await response.json();
         });
 
         return Promise.all(attendeePromises);
@@ -112,15 +121,28 @@ export const SalesIntelligenceEngine = ({
 
       setIntelligence(flatResults);
       
-      toast({
-        title: "Sales Intelligence Generated",
-        description: `Created ${flatResults.length} intelligence briefs`,
-      });
+      if (flatResults.length === 0) {
+        toast({
+          title: "Intelligence Unavailable",
+          description: "Unable to generate sales intelligence. Meeting details remain available.",
+          variant: "destructive",
+        });
+      } else if (partialFailure) {
+        toast({
+          title: "Partial Intelligence Generated",
+          description: `Created ${flatResults.length} briefs. Some data unavailable.`,
+        });
+      } else {
+        toast({
+          title: "Sales Intelligence Generated",
+          description: `Created ${flatResults.length} intelligence briefs`,
+        });
+      }
     } catch (error) {
       console.error('Error generating sales intelligence:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate intelligence",
+        title: "Intelligence Generation Failed",
+        description: "Unable to create sales intelligence. Proceeding with available meeting data.",
         variant: "destructive",
       });
     } finally {
@@ -151,6 +173,15 @@ export const SalesIntelligenceEngine = ({
 
   return (
     <div className="space-y-6">
+      {partialFailure && intelligence.length > 0 && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+          <p className="flex items-center gap-2 text-sm">
+            <AlertCircle className="w-4 h-4 text-warning" />
+            <span>Some intelligence data is incomplete. Showing available information.</span>
+          </p>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

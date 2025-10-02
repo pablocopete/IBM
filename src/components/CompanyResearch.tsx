@@ -75,10 +75,12 @@ interface CompanyResearchProps {
 export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchProps) => {
   const [research, setResearch] = useState<CompanyResearch | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorState, setErrorState] = useState<{ message: string; canRetry: boolean } | null>(null);
   const { toast } = useToast();
 
   const conductResearch = async () => {
     setIsLoading(true);
+    setErrorState(null);
     try {
       console.log(`Researching ${companyName}...`);
 
@@ -95,6 +97,35 @@ export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchP
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Handle rate limiting
+        if (response.status === 429) {
+          setErrorState({
+            message: 'Research service temporarily busy. Please try again in a moment.',
+            canRetry: true,
+          });
+          return;
+        }
+
+        // Handle blocked websites
+        if (response.status === 403 || response.status === 451) {
+          setErrorState({
+            message: 'Some data sources are restricted. Using available public information.',
+            canRetry: false,
+          });
+          // Set partial research data if available
+          setResearch({
+            companyName,
+            companyDomain,
+            profile: {
+              industry: 'Information unavailable',
+            },
+            confidence: 'low',
+            researchedAt: new Date().toISOString(),
+          });
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to research company');
       }
 
@@ -107,9 +138,15 @@ export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchP
       });
     } catch (error) {
       console.error('Error researching company:', error);
+      
+      setErrorState({
+        message: 'Company research unavailable. Meeting can proceed with basic details.',
+        canRetry: true,
+      });
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to research company",
+        title: "Limited Information",
+        description: "Unable to fetch complete company data. Proceeding with available information.",
         variant: "destructive",
       });
     } finally {
@@ -130,6 +167,26 @@ export const CompanyResearch = ({ companyName, companyDomain }: CompanyResearchP
 
   return (
     <div className="space-y-6">
+      {errorState && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+          <p className="flex items-center gap-2 text-sm">
+            <AlertCircle className="w-4 h-4 text-warning" />
+            <span>{errorState.message}</span>
+          </p>
+          {errorState.canRetry && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={conductResearch} 
+              className="mt-2"
+              disabled={isLoading}
+            >
+              Try Again
+            </Button>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">

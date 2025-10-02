@@ -28,10 +28,12 @@ interface PrioritizedAgendaProps {
 export const PrioritizedAgenda = ({ calendarEvents, emails }: PrioritizedAgendaProps) => {
   const [agenda, setAgenda] = useState<PrioritizedAgenda | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const { toast } = useToast();
 
   const analyzeTasks = async () => {
     setIsLoading(true);
+    setHasError(false);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prioritize-tasks`,
@@ -46,16 +48,35 @@ export const PrioritizedAgenda = ({ calendarEvents, emails }: PrioritizedAgendaP
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Handle rate limiting gracefully
+        if (response.status === 429) {
+          setHasError(true);
+          toast({
+            title: "Service Busy",
+            description: "Too many requests. Please wait before trying again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to prioritize tasks');
       }
 
       const data = await response.json();
       setAgenda(data);
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Your tasks have been prioritized",
+      });
     } catch (error) {
       console.error('Error prioritizing tasks:', error);
+      setHasError(true);
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to analyze tasks",
+        title: "Analysis Unavailable",
+        description: "Unable to prioritize tasks. Calendar and email data remain accessible.",
         variant: "destructive",
       });
     } finally {
@@ -78,6 +99,15 @@ export const PrioritizedAgenda = ({ calendarEvents, emails }: PrioritizedAgendaP
 
   return (
     <div className="space-y-6">
+      {hasError && (
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+          <p className="flex items-center gap-2 text-sm">
+            <AlertCircle className="w-4 h-4 text-warning" />
+            <span>Task prioritization temporarily unavailable. Calendar and email data remain accessible.</span>
+          </p>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

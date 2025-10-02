@@ -33,10 +33,12 @@ interface AttendeeIntelligenceProps {
 export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligenceProps) => {
   const [intelligence, setIntelligence] = useState<AttendeeData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<{ message: string; severity: 'warning' | 'error' } | null>(null);
   const { toast } = useToast();
 
   const analyzeAttendees = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Extract all unique external attendees (not from common domains)
       const internalDomains = ['company.com', 'gmail.com', 'yahoo.com', 'hotmail.com'];
@@ -58,6 +60,10 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
       try {
         validateBatch(attendeeSchema, allAttendees, 50);
       } catch (validationError) {
+        setError({
+          message: 'Invalid attendee data format',
+          severity: 'error',
+        });
         toast({
           title: "Validation Error",
           description: validationError instanceof Error ? validationError.message : "Invalid attendee data",
@@ -68,9 +74,9 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
       }
 
       if (allAttendees.length === 0) {
-        toast({
-          title: "No External Attendees",
-          description: "No external meeting attendees found to analyze",
+        setError({
+          message: 'No external attendees found in calendar events',
+          severity: 'warning',
         });
         setIsLoading(false);
         return;
@@ -91,6 +97,21 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Handle rate limiting gracefully
+        if (response.status === 429) {
+          setError({
+            message: 'Rate limit reached. Please wait a moment before trying again.',
+            severity: 'warning',
+          });
+          toast({
+            title: "Rate Limit",
+            description: "Too many requests. Please wait before trying again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to analyze attendees');
       }
 
@@ -103,9 +124,16 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
       });
     } catch (error) {
       console.error('Error analyzing attendees:', error);
+      
+      // Set graceful error state
+      setError({
+        message: 'Unable to fetch complete attendee intelligence. Basic information displayed.',
+        severity: 'warning',
+      });
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to analyze attendees",
+        title: "Partial Analysis Available",
+        description: "Some attendee data unavailable. Showing available information.",
         variant: "destructive",
       });
     } finally {
@@ -126,6 +154,21 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className={`border rounded-lg p-4 ${
+          error.severity === 'warning' 
+            ? 'bg-warning/10 border-warning/20' 
+            : 'bg-destructive/10 border-destructive/20'
+        }`}>
+          <p className="flex items-center gap-2 text-sm">
+            <AlertCircle className={`w-4 h-4 ${
+              error.severity === 'warning' ? 'text-warning' : 'text-destructive'
+            }`} />
+            <span>{error.message}</span>
+          </p>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
