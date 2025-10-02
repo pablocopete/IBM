@@ -19,7 +19,7 @@ const Index = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             AI-powered agent that analyzes calendar, emails, and prioritizes tasks with sales intelligence
           </p>
-          <div className="flex gap-4 justify-center pt-4">
+          <div className="flex flex-wrap gap-4 justify-center pt-4">
             <Link to="/auth">
               <Button size="lg" className="text-lg px-8 h-12">
                 Get Started
@@ -27,7 +27,12 @@ const Index = () => {
             </Link>
             <Link to="/dashboard">
               <Button size="lg" variant="outline" className="text-lg px-8 h-12">
-                View Dashboard
+                Security Dashboard
+              </Button>
+            </Link>
+            <Link to="/data-collection">
+              <Button size="lg" variant="outline" className="text-lg px-8 h-12">
+                Data Collection
               </Button>
             </Link>
           </div>
