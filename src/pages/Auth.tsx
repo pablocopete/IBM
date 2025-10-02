@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Mail, Lock, Chrome } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Invalid email address").max(255);
@@ -13,9 +15,28 @@ const passwordSchema = z.string().min(8, "Password must be at least 8 characters
 
 const Auth = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/intelligent');
+      }
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/intelligent');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const validateInput = () => {
     try {
@@ -36,25 +57,76 @@ const Auth = () => {
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
-    toast({
-      title: "Google OAuth",
-      description: "Backend integration required. Enable Cloud to connect Google Calendar & Gmail.",
-    });
-    setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/intelligent`,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initiate Google sign-in",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEmailAuth = async (type: "signin" | "signup") => {
     if (!validateInput()) return;
 
     setIsLoading(true);
-    // Simulated - will connect to backend later
-    setTimeout(() => {
+    try {
+      const redirectUrl = `${window.location.origin}/intelligent`;
+      
+      if (type === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl,
+          },
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Account created successfully! You can now sign in.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Signed in successfully!",
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: type === "signin" ? "Sign In" : "Sign Up",
-        description: "Backend integration required. Enable Cloud to authenticate users.",
+        title: "Authentication Error",
+        description: error.message || "An error occurred during authentication",
+        variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
