@@ -43,8 +43,8 @@ const IntelligentDashboard = () => {
   // Data state
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [emails, setEmails] = useState([]);
-  const [attendeeIntelligence, setAttendeeIntelligence] = useState(null);
-  const [companyResearch, setCompanyResearch] = useState(null);
+  const [attendeeIntelligence, setAttendeeIntelligence] = useState<any[]>([]);
+  const [companyResearch, setCompanyResearch] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();

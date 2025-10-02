@@ -36,6 +36,51 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
   const [error, setError] = useState<{ message: string; severity: 'warning' | 'error' } | null>(null);
   const { toast } = useToast();
 
+  // Mock attendees for demo
+  const mockAttendees: AttendeeData[] = [
+    {
+      name: "John Smith",
+      email: "john.smith@techcorp.com",
+      emailDomain: "techcorp.com",
+      jobTitle: "VP of Sales",
+      role: "Decision Maker",
+      yearsAtCompany: "3 years",
+      professionalBackground: "15+ years in enterprise sales and go-to-market leadership.",
+      recentActivities: [
+        "Published LinkedIn post on AI in sales",
+        "Hiring for Sales Ops Manager",
+        "Spoke at SaaS Growth Summit"
+      ],
+      companyName: "Tech Corp",
+      companyIndustry: "Enterprise Software",
+      linkedInUrl: "https://www.linkedin.com/in/johnsmith",
+      confidence: "high",
+    },
+    {
+      name: "Emily Davis",
+      email: "e.davis@acmeindustries.com",
+      emailDomain: "acmeindustries.com",
+      jobTitle: "Director of IT",
+      role: "Technical Evaluator",
+      yearsAtCompany: "5 years",
+      professionalBackground: "IT leadership with focus on integration and security.",
+      recentActivities: [
+        "Commented on IT modernization article",
+        "Joined manufacturing IT roundtable",
+      ],
+      companyName: "Acme Industries",
+      companyIndustry: "Manufacturing",
+      linkedInUrl: "https://www.linkedin.com/in/emilyd",
+      confidence: "medium",
+    },
+  ];
+
+  const loadMockAttendees = () => {
+    setIntelligence(mockAttendees);
+    setError(null);
+    toast({ title: "Loaded Mock Attendees", description: `Added ${mockAttendees.length} profiles` });
+  };
+
   const analyzeAttendees = async () => {
     setIsLoading(true);
     setError(null);
@@ -74,10 +119,8 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
       }
 
       if (allAttendees.length === 0) {
-        setError({
-          message: 'No external attendees found in calendar events',
-          severity: 'warning',
-        });
+        // Fallback to mock data when no external attendees are found
+        loadMockAttendees();
         setIsLoading(false);
         return;
       }
@@ -189,6 +232,9 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
             ) : (
               "Analyze Meeting Attendees"
             )}
+          </Button>
+          <Button onClick={loadMockAttendees} variant="outline" disabled={isLoading} className="w-full mt-2">
+            Use Mock Attendees
           </Button>
         </CardContent>
       </Card>

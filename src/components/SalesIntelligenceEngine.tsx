@@ -230,7 +230,7 @@ export const SalesIntelligenceEngine = ({
         <CardContent>
           <Button 
             onClick={generateIntelligence} 
-            disabled={isLoading || attendeeIntelligence.length === 0} 
+            disabled={isLoading} 
             className="w-full"
           >
             {isLoading ? (
@@ -242,11 +242,6 @@ export const SalesIntelligenceEngine = ({
               "Generate Sales Intelligence"
             )}
           </Button>
-          {attendeeIntelligence.length === 0 && (
-            <p className="text-sm text-muted-foreground mt-2 text-center">
-              Please analyze meeting attendees first
-            </p>
-          )}
         </CardContent>
       </Card>
 
