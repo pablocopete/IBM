@@ -1,158 +1,124 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Plus, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+import { Calendar, Clock, MapPin, Users, Video, AlertCircle } from "lucide-react";
+import { format, parseISO, formatDuration, intervalToDuration } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
+
+interface CalendarAttendee {
+  name: string;
+  email: string;
+  responseStatus: "accepted" | "declined" | "tentative" | "needsAction";
+}
 
 interface CalendarEvent {
   id: string;
-  user_id: string;
   title: string;
+  startTime: string;
+  endTime: string;
+  duration: number; // in minutes
+  attendees: CalendarAttendee[];
   description?: string;
-  event_date: string;
-  start_time?: string;
-  end_time?: string;
   location?: string;
-  event_type: string;
-  priority: string;
-  status: string;
-  created_at: string;
+  meetingLink?: string;
+  timezone: string;
+  priority: "high" | "medium" | "low";
 }
 
+// Mock data - will be replaced with real Google Calendar API data
+const mockEvents: CalendarEvent[] = [
+  {
+    id: "1",
+    title: "Sales Strategy Review with Tech Corp",
+    startTime: "2025-10-02T09:00:00Z",
+    endTime: "2025-10-02T10:00:00Z",
+    duration: 60,
+    attendees: [
+      { name: "John Smith", email: "john.smith@techcorp.com", responseStatus: "accepted" },
+      { name: "Sarah Johnson", email: "sarah.j@techcorp.com", responseStatus: "accepted" },
+      { name: "Mike Chen", email: "mike.chen@techcorp.com", responseStatus: "tentative" },
+    ],
+    description: "Q4 sales pipeline review. Discuss new enterprise opportunities and competitor analysis.",
+    meetingLink: "https://meet.google.com/abc-defg-hij",
+    timezone: "America/New_York",
+    priority: "high",
+  },
+  {
+    id: "2",
+    title: "Product Demo - Acme Industries",
+    startTime: "2025-10-02T11:30:00Z",
+    endTime: "2025-10-02T12:00:00Z",
+    duration: 30,
+    attendees: [
+      { name: "Emily Davis", email: "e.davis@acmeindustries.com", responseStatus: "accepted" },
+    ],
+    description: "Demo our new analytics platform. Focus on ROI metrics and integration capabilities.",
+    meetingLink: "https://zoom.us/j/123456789",
+    timezone: "America/New_York",
+    priority: "high",
+  },
+  {
+    id: "3",
+    title: "Team Standup",
+    startTime: "2025-10-02T14:00:00Z",
+    endTime: "2025-10-02T14:15:00Z",
+    duration: 15,
+    attendees: [
+      { name: "Team", email: "team@company.com", responseStatus: "accepted" },
+    ],
+    description: "Daily sync on ongoing projects and blockers.",
+    location: "Conference Room B",
+    timezone: "America/New_York",
+    priority: "medium",
+  },
+  {
+    id: "4",
+    title: "Client Check-in: Global Solutions Inc",
+    startTime: "2025-10-02T15:30:00Z",
+    endTime: "2025-10-02T16:00:00Z",
+    duration: 30,
+    attendees: [
+      { name: "Robert Lee", email: "robert.lee@globalsolutions.com", responseStatus: "accepted" },
+      { name: "Amanda White", email: "a.white@globalsolutions.com", responseStatus: "needsAction" },
+    ],
+    description: "Monthly check-in. Review satisfaction scores and discuss expansion opportunities.",
+    meetingLink: "https://meet.google.com/xyz-abcd-efg",
+    timezone: "America/New_York",
+    priority: "medium",
+  },
+];
+
 const CalendarEvents = () => {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Form state
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    event_date: format(new Date(), 'yyyy-MM-dd'),
-    start_time: '',
-    end_time: '',
-    location: '',
-    priority: 'medium',
-    event_type: 'task',
-    status: 'pending'
-  });
+  const formatEventTime = (isoString: string, timezone: string) => {
+    const date = parseISO(isoString);
+    const zonedDate = toZonedTime(date, timezone);
+    return format(zonedDate, "h:mm a");
+  };
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  const getDurationText = (minutes: number) => {
+    const duration = intervalToDuration({ start: 0, end: minutes * 60 * 1000 });
+    if (duration.hours && duration.hours > 0) {
+      return `${duration.hours}h ${duration.minutes}m`;
+    }
+    return `${minutes}m`;
+  };
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('event_date', { ascending: true })
-        .order('start_time', { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load events",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  const getAttendeeStatusColor = (status: CalendarAttendee["responseStatus"]) => {
+    switch (status) {
+      case "accepted":
+        return "bg-success text-success-foreground";
+      case "declined":
+        return "bg-destructive text-destructive-foreground";
+      case "tentative":
+        return "bg-warning text-warning-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
-  const addEvent = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      if (!newEvent.title.trim()) {
-        toast({
-          title: "Error",
-          description: "Please enter a title",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('calendar_events')
-        .insert([{
-          ...newEvent,
-          user_id: user.id,
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Event added successfully",
-      });
-
-      setIsDialogOpen(false);
-      setNewEvent({
-        title: '',
-        description: '',
-        event_date: format(new Date(), 'yyyy-MM-dd'),
-        start_time: '',
-        end_time: '',
-        location: '',
-        priority: 'medium',
-        event_type: 'task',
-        status: 'pending'
-      });
-      
-      await fetchEvents();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteEvent = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('calendar_events')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Event deleted successfully",
-      });
-
-      await fetchEvents();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: CalendarEvent["priority"]) => {
     switch (priority) {
       case "high":
         return "border-destructive";
@@ -163,248 +129,123 @@ const CalendarEvents = () => {
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return <Badge variant="destructive">High</Badge>;
-      case "medium":
-        return <Badge variant="outline" className="border-warning text-warning">Medium</Badge>;
-      default:
-        return <Badge variant="outline">Low</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Calendar className="w-6 h-6 text-primary" />
-            Calendar Events
+            Today's Calendar
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {events.length} events
+            {mockEvents.length} events scheduled • Timezone: {userTimezone}
           </p>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Event</DialogTitle>
-              <DialogDescription>
-                Create a new calendar event or task
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  placeholder="Event title"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                  placeholder="Event description"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="event_date">Date *</Label>
-                  <Input
-                    id="event_date"
-                    type="date"
-                    value={newEvent.event_date}
-                    onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    value={newEvent.priority}
-                    onValueChange={(value) => setNewEvent({ ...newEvent, priority: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="start_time">Start Time</Label>
-                  <Input
-                    id="start_time"
-                    type="time"
-                    value={newEvent.start_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="end_time">End Time</Label>
-                  <Input
-                    id="end_time"
-                    type="time"
-                    value={newEvent.end_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={newEvent.location}
-                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                  placeholder="Event location"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="event_type">Type</Label>
-                  <Select
-                    value={newEvent.event_type}
-                    onValueChange={(value) => setNewEvent({ ...newEvent, event_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="task">Task</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                      <SelectItem value="reminder">Reminder</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={newEvent.status}
-                    onValueChange={(value) => setNewEvent({ ...newEvent, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button onClick={addEvent} className="w-full">
-                Add Event
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Badge variant="outline" className="h-8">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          Backend Required
+        </Badge>
       </div>
 
-      {loading ? (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Loading events...
-          </CardContent>
-        </Card>
-      ) : events.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground mb-4">No events yet</p>
-            <Button onClick={() => setIsDialogOpen(true)} variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Event
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {events.map((event) => (
-            <Card key={event.id} className={`border-l-4 ${getPriorityColor(event.priority)}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{event.title}</CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {event.event_type}
-                      </Badge>
-                    </div>
-                    <CardDescription className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {format(new Date(event.event_date), "MMM d, yyyy")}
-                      </span>
-                      {event.start_time && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {event.start_time}
-                          {event.end_time && ` - ${event.end_time}`}
-                        </span>
-                      )}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getPriorityBadge(event.priority)}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteEvent(event.id)}
+      <div className="grid gap-4">
+        {mockEvents.map((event) => (
+          <Card key={event.id} className={`border-l-4 ${getPriorityColor(event.priority)}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">{event.title}</CardTitle>
+                  <CardDescription className="flex items-center gap-4 mt-2">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {formatEventTime(event.startTime, event.timezone)} -{" "}
+                      {formatEventTime(event.endTime, event.timezone)}
+                    </span>
+                    <span className="text-xs">
+                      ({getDurationText(event.duration)})
+                    </span>
+                  </CardDescription>
+                </div>
+                {event.priority === "high" && (
+                  <Badge variant="destructive">High Priority</Badge>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {/* Description */}
+              {event.description && (
+                <div>
+                  <p className="text-sm text-muted-foreground">{event.description}</p>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Location/Link */}
+              <div className="flex flex-wrap gap-3">
+                {event.meetingLink && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Video className="w-4 h-4 text-primary" />
+                    <a
+                      href={event.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      Join Meeting
+                    </a>
+                  </div>
+                )}
+                {event.location && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>{event.location}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Attendees */}
+              {event.attendees.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Users className="w-4 h-4" />
+                    Attendees ({event.attendees.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {event.attendees.map((attendee, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 bg-muted rounded-full px-3 py-1.5"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium">{attendee.name}</span>
+                          <span className="text-xs text-muted-foreground">{attendee.email}</span>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${getAttendeeStatusColor(attendee.responseStatus)}`}
+                        >
+                          {attendee.responseStatus}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </CardHeader>
-
-              {(event.description || event.location) && (
-                <CardContent className="space-y-2">
-                  {event.description && (
-                    <p className="text-sm text-muted-foreground">{event.description}</p>
-                  )}
-                  {event.location && (
-                    <p className="text-sm text-muted-foreground">
-                      📍 {event.location}
-                    </p>
-                  )}
-                  <Badge variant="secondary" className="text-xs">
-                    {event.status}
-                  </Badge>
-                </CardContent>
               )}
-            </Card>
-          ))}
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-sm">
+        <p className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-warning" />
+          <span>
+            <strong>Note:</strong> Google Calendar API integration requires Cloud backend. Enable
+            Cloud to fetch real calendar events with OAuth 2.0 authentication.
+          </span>
+        </p>
+      </div>
     </div>
   );
 };

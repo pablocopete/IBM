@@ -47,57 +47,6 @@ export type Database = {
         }
         Relationships: []
       }
-      calendar_events: {
-        Row: {
-          attendees: string[] | null
-          created_at: string
-          description: string | null
-          end_time: string | null
-          event_date: string
-          event_type: string | null
-          id: string
-          location: string | null
-          priority: string | null
-          start_time: string | null
-          status: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          attendees?: string[] | null
-          created_at?: string
-          description?: string | null
-          end_time?: string | null
-          event_date: string
-          event_type?: string | null
-          id?: string
-          location?: string | null
-          priority?: string | null
-          start_time?: string | null
-          status?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          attendees?: string[] | null
-          created_at?: string
-          description?: string | null
-          end_time?: string | null
-          event_date?: string
-          event_type?: string | null
-          id?: string
-          location?: string | null
-          priority?: string | null
-          start_time?: string | null
-          status?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       data_requests: {
         Row: {
           completed_at: string | null
