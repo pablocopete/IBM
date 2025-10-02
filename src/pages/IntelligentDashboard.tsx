@@ -41,6 +41,8 @@ const IntelligentDashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showEmails, setShowEmails] = useState(false);
   
   // Data state
   const [calendarEvents, setCalendarEvents] = useState([]);
@@ -237,13 +239,9 @@ const IntelligentDashboard = () => {
                       variant="outline" 
                       size="sm" 
                       className="w-full"
-                      onClick={() => {
-                        const tabs = document.querySelector('[role="tablist"]');
-                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
-                        intelligenceTab?.click();
-                      }}
+                      onClick={() => setShowCalendar(!showCalendar)}
                     >
-                      View Calendar
+                      {showCalendar ? "Hide Calendar" : "View Calendar"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -267,13 +265,9 @@ const IntelligentDashboard = () => {
                       variant="outline" 
                       size="sm" 
                       className="w-full"
-                      onClick={() => {
-                        const tabs = document.querySelector('[role="tablist"]');
-                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
-                        intelligenceTab?.click();
-                      }}
+                      onClick={() => setShowEmails(!showEmails)}
                     >
-                      View Emails
+                      {showEmails ? "Hide Emails" : "View Emails"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -361,6 +355,36 @@ const IntelligentDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Expandable Calendar Section */}
+              {showCalendar && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Calendar Events
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CalendarEvents />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Expandable Email Section */}
+              {showEmails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="h-5 w-5" />
+                      Recent Emails
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EmailList />
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Sales Intelligence Tab */}
