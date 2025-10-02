@@ -4,6 +4,8 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, MapPin, Users, Video, AlertCircle } from "lucide-react";
 import { format, parseISO, formatDuration, intervalToDuration } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CalendarAttendee {
   name: string;
@@ -90,6 +92,58 @@ const mockEvents: CalendarEvent[] = [
 
 const CalendarEvents = () => {
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [events, setEvents] = useState<CalendarEvent[]>(mockEvents);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthAndFetchEvents();
+  }, []);
+
+  const checkAuthAndFetchEvents = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+
+    if (session) {
+      await fetchUserEvents();
+    } else {
+      setEvents(mockEvents);
+    }
+    setLoading(false);
+  };
+
+  const fetchUserEvents = async () => {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('event_date', new Date().toISOString().split('T')[0])
+      .order('start_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching events:', error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const formattedEvents: CalendarEvent[] = data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        startTime: `${event.event_date}T${event.start_time || '09:00:00'}Z`,
+        endTime: `${event.event_date}T${event.end_time || '10:00:00'}Z`,
+        duration: event.start_time && event.end_time ? 
+          Math.round((new Date(`2000-01-01T${event.end_time}`).getTime() - 
+                     new Date(`2000-01-01T${event.start_time}`).getTime()) / 60000) : 60,
+        attendees: event.attendees || [],
+        description: event.description || undefined,
+        location: event.location || undefined,
+        timezone: userTimezone,
+        priority: (event.priority as "high" | "medium" | "low") || "medium",
+      }));
+      setEvents(formattedEvents);
+    } else {
+      setEvents([]);
+    }
+  };
 
   const formatEventTime = (isoString: string, timezone: string) => {
     const date = parseISO(isoString);
@@ -129,6 +183,10 @@ const CalendarEvents = () => {
     }
   };
 
+  if (loading) {
+    return <div className="text-center py-8">Loading calendar...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -138,17 +196,20 @@ const CalendarEvents = () => {
             Today's Calendar
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {mockEvents.length} events scheduled • Timezone: {userTimezone}
+            {events.length} events scheduled • Timezone: {userTimezone}
+            {!isAuthenticated && " • Demo Data"}
           </p>
         </div>
-        <Badge variant="outline" className="h-8">
-          <AlertCircle className="w-3 h-3 mr-1" />
-          Backend Required
-        </Badge>
+        {!isAuthenticated && (
+          <Badge variant="outline" className="h-8">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Demo Mode
+          </Badge>
+        )}
       </div>
 
       <div className="grid gap-4">
-        {mockEvents.map((event) => (
+        {events.map((event) => (
           <Card key={event.id} className={`border-l-4 ${getPriorityColor(event.priority)}`}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -237,15 +298,16 @@ const CalendarEvents = () => {
         ))}
       </div>
 
-      <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-sm">
-        <p className="flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-warning" />
-          <span>
-            <strong>Note:</strong> Google Calendar API integration requires Cloud backend. Enable
-            Cloud to fetch real calendar events with OAuth 2.0 authentication.
-          </span>
-        </p>
-      </div>
+      {!isAuthenticated && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm">
+          <p className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-primary" />
+            <span>
+              <strong>Demo Mode:</strong> Sign in to view and manage your own calendar events.
+            </span>
+          </p>
+        </div>
+      )}
     </div>
   );
 };

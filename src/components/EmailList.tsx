@@ -1,23 +1,73 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Clock, User, RefreshCw } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Mail, Clock, User, RefreshCw, AlertCircle } from "lucide-react";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+
+// Mock emails for demo
+const mockEmails = [
+  {
+    id: "demo-1",
+    sender_name: "Sarah Johnson",
+    sender_email: "sarah.j@techcorp.com",
+    subject: "Q4 Strategy Review - Preparation Materials",
+    body_snippet: "Hi there, I wanted to share the preparation materials for our upcoming Q4 strategy review meeting. Please review the attached documents before our call...",
+    received_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    is_read: false,
+    priority: "high",
+    labels: ["important", "work"],
+  },
+  {
+    id: "demo-2",
+    sender_name: "Mike Chen",
+    sender_email: "mike.chen@acmecorp.com",
+    subject: "Follow-up: Product Demo Feedback",
+    body_snippet: "Thanks for the excellent product demo yesterday! Our team was really impressed with the analytics features. I'd like to schedule a follow-up call to discuss...",
+    received_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    is_read: false,
+    priority: "normal",
+    labels: ["client", "demo"],
+  },
+  {
+    id: "demo-3",
+    sender_name: "LinkedIn Notifications",
+    sender_email: "notifications@linkedin.com",
+    subject: "You have 3 new connection requests",
+    body_snippet: "John Smith, Emily Davis, and Robert Lee want to connect with you on LinkedIn. See who's trying to reach you and grow your professional network...",
+    received_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    is_read: true,
+    priority: "normal",
+    labels: ["social"],
+  },
+];
 
 const EmailList = () => {
   const [emails, setEmails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [hasConnection, setHasConnection] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    checkEmailConnection();
-    fetchEmails();
+    checkAuthAndFetchEmails();
   }, []);
+
+  const checkAuthAndFetchEmails = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+
+    if (session) {
+      await checkEmailConnection();
+      await fetchEmails();
+    } else {
+      setEmails(mockEmails);
+      setLoading(false);
+    }
+  };
 
   const checkEmailConnection = async () => {
     try {
@@ -82,33 +132,12 @@ const EmailList = () => {
     }
   };
 
-  const connectGmail = () => {
+  const handleConnectGmail = () => {
     toast({
       title: "Gmail Connection",
       description: "Please connect your Gmail account in Settings to view your emails.",
     });
   };
-
-  if (!hasConnection) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">Connect Your Email</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Connect your Gmail account to view and analyze your emails
-              </p>
-              <Button onClick={connectGmail}>
-                Connect Gmail
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -116,22 +145,68 @@ const EmailList = () => {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Mail className="w-6 h-6 text-primary" />
-            Your Emails
+            Recent Emails
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {emails.length} emails loaded
+            {isAuthenticated ? "Your latest emails from Gmail" : "Demo emails • Sign in to connect Gmail"}
           </p>
         </div>
-        <Button
-          onClick={syncGmail}
-          disabled={syncing}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync Gmail'}
-        </Button>
+        {isAuthenticated ? (
+          hasConnection && (
+            <Button
+              onClick={syncGmail}
+              disabled={syncing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Gmail'}
+            </Button>
+          )
+        ) : (
+          <Badge variant="outline" className="h-8">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Demo Mode
+          </Badge>
+        )}
       </div>
+
+      {isAuthenticated && !hasConnection && (
+        <Card className="border-warning/50 bg-warning/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-warning">
+              <AlertCircle className="w-5 h-5" />
+              Gmail Not Connected
+            </CardTitle>
+            <CardDescription>
+              Connect your Gmail account to see your emails here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handleConnectGmail}
+              className="w-full"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Connect Gmail
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAuthenticated && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              Demo Mode
+            </CardTitle>
+            <CardDescription>
+              Sign in to connect your Gmail account and see your real emails.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       {loading ? (
         <Card>
