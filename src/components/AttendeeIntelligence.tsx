@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, Building2, Briefcase, Calendar, TrendingUp, ExternalLink, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CompanyResearch } from "./CompanyResearch";
 
 interface AttendeeData {
   name: string;
@@ -241,6 +243,29 @@ export const AttendeeIntelligence = ({ calendarEvents }: AttendeeIntelligencePro
                             ))}
                           </ul>
                         </div>
+                      </>
+                    )}
+
+                    {/* Company Research Section */}
+                    {attendee.companyName && attendee.emailDomain && (
+                      <>
+                        <Separator />
+                        <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem value="company-research">
+                            <AccordionTrigger>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                Deep Dive: {attendee.companyName} Research
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <CompanyResearch 
+                                companyName={attendee.companyName}
+                                companyDomain={attendee.emailDomain}
+                              />
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                       </>
                     )}
                   </div>
