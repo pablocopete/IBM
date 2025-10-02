@@ -207,6 +207,156 @@ const IntelligentDashboard = () => {
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-4">
+              {/* Quick Stats Grid */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        Today's Meetings
+                      </span>
+                      <Badge variant="secondary">{calendarEvents.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold mb-1">{calendarEvents.length}</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Scheduled events for today
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        const tabs = document.querySelector('[role="tablist"]');
+                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
+                        intelligenceTab?.click();
+                      }}
+                    >
+                      View Calendar
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-blue-500" />
+                        Recent Emails
+                      </span>
+                      <Badge variant="secondary">{emails.length || 5}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold mb-1">{emails.length || 5}</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Unread messages (last 24h)
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        const tabs = document.querySelector('[role="tablist"]');
+                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
+                        intelligenceTab?.click();
+                      }}
+                    >
+                      View Emails
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-primary" />
+                        AI Insights
+                      </span>
+                      <Badge variant="secondary">Ready</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold mb-1">2</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Sales intelligence briefs available
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        const tabs = document.querySelector('[role="tablist"]');
+                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
+                        intelligenceTab?.click();
+                      }}
+                    >
+                      Generate Intelligence
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-3"
+                      onClick={() => {
+                        const tabs = document.querySelector('[role="tablist"]');
+                        const intelligenceTab = tabs?.querySelector('[value="intelligence"]') as HTMLElement;
+                        intelligenceTab?.click();
+                      }}
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold flex items-center gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          Generate Sales Intelligence
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          AI-powered insights for your meetings
+                        </div>
+                      </div>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-3"
+                      onClick={() => {
+                        const tabs = document.querySelector('[role="tablist"]');
+                        const researchTab = tabs?.querySelector('[value="research"]') as HTMLElement;
+                        researchTab?.click();
+                      }}
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Research Attendees
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Deep dive into meeting participants
+                        </div>
+                      </div>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Sales Intelligence Tab */}
+            <TabsContent value="intelligence" className="space-y-4">
+              {/* Calendar and Emails in Intelligence Tab */}
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader>
@@ -233,24 +383,6 @@ const IntelligentDashboard = () => {
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    AI Prioritized Tasks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PrioritizedAgenda 
-                    calendarEvents={calendarEvents}
-                    emails={emails}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Sales Intelligence Tab */}
-            <TabsContent value="intelligence" className="space-y-4">
               <SalesIntelligenceEngine
                 calendarEvents={calendarEvents}
                 attendeeIntelligence={attendeeIntelligence}
