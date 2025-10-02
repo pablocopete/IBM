@@ -14,7 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_permissions: {
+        Row: {
+          created_at: string | null
+          granted_at: string | null
+          id: string
+          last_used_at: string | null
+          permission_scopes: string[]
+          revoked_at: string | null
+          service_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          granted_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          permission_scopes: string[]
+          revoked_at?: string | null
+          service_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          granted_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          permission_scopes?: string[]
+          revoked_at?: string | null
+          service_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          data_url: string | null
+          id: string
+          notes: string | null
+          request_type: string
+          requested_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_url?: string | null
+          id?: string
+          notes?: string | null
+          request_type: string
+          requested_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_url?: string | null
+          id?: string
+          notes?: string | null
+          request_type?: string
+          requested_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          created_at: string | null
+          daily_summary: boolean | null
+          id: string
+          marketing_emails: boolean | null
+          product_updates: boolean | null
+          unsubscribed_all: boolean | null
+          unsubscribed_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_summary?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          product_updates?: boolean | null
+          unsubscribed_all?: boolean | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_summary?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          product_updates?: boolean | null
+          unsubscribed_all?: boolean | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          consent_date: string | null
+          consent_given: boolean
+          consent_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          revoked_at: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          revoked_at?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_date?: string | null
+          consent_given?: boolean
+          consent_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          revoked_at?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
